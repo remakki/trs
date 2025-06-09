@@ -1,0 +1,22 @@
+services:
+  trs:
+    build: ./trs
+    container_name: trs-servcie
+    env_file:
+      - trs/.env
+    image: trs-servcie
+    networks:
+      - trs-network
+
+  trs-bot:
+    build: ./bot
+    container_name: trs-bot
+    env_file:
+      - bot/.env
+    image: trs-bot
+    networks:
+      - trs-network
+
+networks:
+  trs-network:
+    external: true

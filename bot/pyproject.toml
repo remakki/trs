@@ -1,0 +1,59 @@
+[project]
+name = "bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aio-pika>=9.5.5",
+    "aiogram==3.17.0",
+    "pydantic-settings>=2.1.0",
+]
+
+[tool.ruff]
+lint.select = [
+    "E",
+    "W",
+    "F",
+    "C",
+    "B",
+]
+
+lint.ignore = [
+    "E501",
+    "B008",
+    "C901",
+]
+
+lint.fixable = [
+    "A", "B", "C", "D", "E", "F"
+]
+
+lint.unfixable = []
+
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "migrations"
+]
+
+line-length = 80
