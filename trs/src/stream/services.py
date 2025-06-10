@@ -75,6 +75,7 @@ class StreamService:
                             sample_rate=self._SAMPLE_RATE,
                             flow_format=self._flow_format,
                         )
+                        self._time = datetime.now(timezone.utc).timestamp()
                         continue
 
                 self._remaining_bytes += data
