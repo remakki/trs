@@ -19,7 +19,7 @@ async def send_message(bot: Bot, message: str) -> None:
 
     caption = (
         f"<b>News</b>\n\n"
-        f"{" - ".join(to_normal_time(float(seconds)) for seconds in message['time_range'].split(' - '))}\n"
+        f"{" - ".join(to_normal_time(float(seconds) + 60 * 60 * 3) for seconds in message['time_range'].split(' - '))}\n"
         f"<b>Summary</b>: {message['summary']}\n"
         f"<b>Temperature</b>: {message['temperature']}\n\n" +
         " ".join(f"#{tag}" for tag in message["tags"])
