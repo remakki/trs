@@ -2,7 +2,7 @@ import aio_pika
 from aio_pika.abc import AbstractIncomingMessage
 from typing import Callable, Optional, Awaitable
 
-from src.mq import logger
+from src.mq import log
 from src.config import settings
 
 
@@ -26,7 +26,7 @@ class AsyncRabbitMQ:
             aio_pika.exceptions.AMQPConnectionError: Если не удалось установить соединение.
         """
         try:
-            logger.info(f"Подключение к RabbitMQ: {self.host}:{self.port}")
+            log.info(f"Подключение к RabbitMQ: {self.host}:{self.port}")
             self.connection = await aio_pika.connect_robust(
                 host=self.host,
                 port=self.port,
@@ -34,14 +34,14 @@ class AsyncRabbitMQ:
                 password=self.password
             )
             self.channel = await self.connection.channel()
-            logger.info("Успешное подключение к RabbitMQ")
+            log.info("Успешное подключение к RabbitMQ")
 
         except aio_pika.exceptions.AMQPConnectionError as e:
-            logger.error(f"Ошибка подключения к RabbitMQ: {e}")
+            log.error(f"Ошибка подключения к RabbitMQ: {e}")
             raise
 
         except Exception as e:
-            logger.error(f"Неизвестная ошибка при подключении: {e}")
+            log.error(f"Неизвестная ошибка при подключении: {e}")
             raise
 
     async def close(self) -> None:
@@ -54,10 +54,10 @@ class AsyncRabbitMQ:
         try:
             if self.connection and not self.connection.is_closed:
                 await self.connection.close()
-                logger.info("Соединение с RabbitMQ закрыто")
+                log.info("Соединение с RabbitMQ закрыто")
 
         except Exception as e:
-            logger.error(f"Ошибка при закрытии соединения: {e}")
+            log.error(f"Ошибка при закрытии соединения: {e}")
             raise
 
     async def consume(self, queue_name: str, callback: Callable[[str], Awaitable[None]]) -> None:
@@ -74,11 +74,11 @@ class AsyncRabbitMQ:
             aio_pika.exceptions.AMQPError: Если произошла ошибка при работе с RabbitMQ.
         """
         if not self.channel:
-            logger.error("Попытка потребления без установленного соединения")
+            log.error("Попытка потребления без установленного соединения")
             raise ValueError("Соединение не установлено")
 
         try:
-            logger.info(f"Запуск потребления из очереди: {queue_name}")
+            log.info(f"Запуск потребления из очереди: {queue_name}")
             # Объявление очереди
             queue = await self.channel.declare_queue(queue_name, durable=True)
             # Установка ограничения на количество сообщений
@@ -89,21 +89,21 @@ class AsyncRabbitMQ:
                 try:
                     async with message.process():
                         body = message.body.decode()
-                        logger.info(f"Получено сообщение из очереди {queue_name}: {body}")
+                        log.info(f"Получено сообщение из очереди {queue_name}: {body}")
                         await callback(body)
                 except Exception as e:
-                    logger.error(f"Ошибка обработки сообщения: {e}")
+                    log.error(f"Ошибка обработки сообщения: {e}")
                     raise
 
             # Запуск потребления
             await queue.consume(on_message)
-            logger.info(f"Ожидание сообщений из очереди {queue_name}")
+            log.info(f"Ожидание сообщений из очереди {queue_name}")
 
         except aio_pika.exceptions.AMQPError as e:
-            logger.error(f"Ошибка при потреблении из очереди {queue_name}: {e}")
+            log.error(f"Ошибка при потреблении из очереди {queue_name}: {e}")
             raise
         except Exception as e:
-            logger.error(f"Неизвестная ошибка при потреблении: {e}")
+            log.error(f"Неизвестная ошибка при потреблении: {e}")
             raise
 
     async def publish(self, queue_name: str, message: str) -> None:
@@ -119,7 +119,7 @@ class AsyncRabbitMQ:
             aio_pika.exceptions.AMQPError: Если произошла ошибка при публикации.
         """
         if not self.channel:
-            logger.error("Попытка публикации без установленного соединения")
+            log.error("Попытка публикации без установленного соединения")
             raise ValueError("Соединение не установлено")
 
         try:
@@ -133,10 +133,10 @@ class AsyncRabbitMQ:
                 ),
                 routing_key=queue_name
             )
-            logger.info(f"Отправлено сообщение в очередь {queue_name}: {message}")
+            log.info(f"Отправлено сообщение в очередь {queue_name}: {message}")
         except aio_pika.exceptions.AMQPError as e:
-            logger.error(f"Ошибка при публикации в очередь {queue_name}: {e}")
+            log.error(f"Ошибка при публикации в очередь {queue_name}: {e}")
             raise
         except Exception as e:
-            logger.error(f"Неизвестная ошибка при публикации: {e}")
+            log.error(f"Неизвестная ошибка при публикации: {e}")
             raise

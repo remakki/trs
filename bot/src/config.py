@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     RABBITMQ_PORT: int
     RABBITMQ_QUEUE: str
 
+    REQUEST_URL: str
+    TOKEN: str
+
     class Config:
         env_file = ".env"
 
