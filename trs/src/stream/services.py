@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import timezone, datetime
 from json import JSONDecodeError
 from subprocess import Popen
@@ -58,112 +59,112 @@ class StreamService:
             flow_format=self._flow_format,
         )
 
-        with RabbitMQ() as mq:
-            while True:
-                if not self._stream:
-                    raise RuntimeError("Failed to start stream process.")
+        while True:
+            if not self._stream:
+                raise RuntimeError("Failed to start stream process.")
 
-                data = self._stream.stdout.read(self._CHUNK_SIZE)
-                log.info(f"Chunk size readed: {len(data)} bytes")
+            data = self._stream.stdout.read(self._CHUNK_SIZE)
+            log.info(f"Chunk size readed: {len(data)} bytes")
 
-                if not data:
-                    try:
-                        self._stream.terminate()
-                    finally:
-                        self._stream = get_stream(
-                            flow=self._flow,
-                            sample_rate=self._SAMPLE_RATE,
-                            flow_format=self._flow_format,
-                        )
-                        self._time = datetime.now(timezone.utc).timestamp()
-                        continue
-
-                self._remaining_bytes += data
-
-                split_ms = get_split_ms(self._remaining_bytes, self._SAMPLE_RATE)
-                split_seconds = split_ms / 1000
-                samples = int(split_seconds * self._SAMPLE_RATE)
-                byte_index = samples * self._SAMPLE_WIDTH
-
-                audio_bytes = self._remaining_bytes[:byte_index]
-                self._remaining_bytes = self._remaining_bytes[byte_index:]
-
-                if len(audio_bytes) == 0:
-                    continue
-
-                file_path = write_bytes_to_wav(audio_bytes)
-
-                segments = []
-
+            if not data:
                 try:
-                    log.info("Transcribing...")
-                    segments = self._transcription_client.transcribe(str(file_path))
-                except HTTPError as e:
-                    log.error(e)
-
-                delete_file(str(file_path))
-
-                if not segments:
-                    continue
-
-                message = "\n".join(
-                    f"[{self._time + segment['start']} - "
-                    f"{self._time + segment['end']}] "
-                    f"{segment['text']}"
-                    for segment in segments
-                )
-                log.info(f"message: {message}")
-
-                self._messages.append(
-                    {
-                        "content": message,
-                        "start": self._time + segments[0]["start"],
-                        "end": self._time + segments[-1]["end"],
-                    }
-                )
-
-                self._time += split_seconds
-
-                result: str | None = None
-
-                try:
-                    result = self._ai_client.chat_completions(
-                        "trs-analyzer-main", self._messages
+                    self._stream.terminate()
+                finally:
+                    time.sleep(5)
+                    self._stream = get_stream(
+                        flow=self._flow,
+                        sample_rate=self._SAMPLE_RATE,
+                        flow_format=self._flow_format,
                     )
-                except HTTPError as e:
-                    log.error(f"HTTP error: {e}")
-
-                if not result:
+                    self._time = datetime.now(timezone.utc).timestamp()
                     continue
 
-                log.info(f"Chat result: {result}")
+            self._remaining_bytes += data
 
-                if result.strip() == "-":
-                    if (
-                        self._messages[-1]["start"]
-                        < self._time - self._max_diff_time_for_last_message
-                    ):
-                        self._messages = self._messages[1:]
-                    continue
+            split_ms = get_split_ms(self._remaining_bytes, self._SAMPLE_RATE)
+            split_seconds = split_ms / 1000
+            samples = int(split_seconds * self._SAMPLE_RATE)
+            byte_index = samples * self._SAMPLE_WIDTH
 
-                if result.strip() == "wait":
-                    continue
+            audio_bytes = self._remaining_bytes[:byte_index]
+            self._remaining_bytes = self._remaining_bytes[byte_index:]
 
-                result = (
-                    result.replace("```json", "")
-                    .replace("```text", "")
-                    .replace("```", "")
-                    .replace("“", '"')
-                    .replace("”", '"')
-                    .strip("`")
+            if len(audio_bytes) == 0:
+                continue
+
+            file_path = write_bytes_to_wav(audio_bytes)
+
+            segments = []
+
+            try:
+                log.info("Transcribing...")
+                segments = self._transcription_client.transcribe(str(file_path))
+            except HTTPError as e:
+                log.error(e)
+
+            delete_file(str(file_path))
+
+            if not segments:
+                continue
+
+            message = "\n".join(
+                f"[{self._time + segment['start']} - "
+                f"{self._time + segment['end']}] "
+                f"{segment['text']}"
+                for segment in segments
+            )
+            log.info(f"message: {message}")
+
+            self._messages.append(
+                {
+                    "content": message,
+                    "start": self._time + segments[0]["start"],
+                    "end": self._time + segments[-1]["end"],
+                }
+            )
+
+            self._time += split_seconds
+
+            result: str | None = None
+
+            try:
+                result = self._ai_client.chat_completions(
+                    "trs-analyzer-main", self._messages
                 )
+            except HTTPError as e:
+                log.error(f"HTTP error: {e}")
 
-                try:
-                    result_json = json.loads(result)
+            if not result:
+                continue
 
+            log.info(f"Chat result: {result}")
+
+            if result.strip() == "-":
+                if (
+                    self._messages[-1]["start"]
+                    < self._time - self._max_diff_time_for_last_message
+                ):
+                    self._messages = self._messages[1:]
+                continue
+
+            if result.strip() == "wait":
+                continue
+
+            result = (
+                result.replace("```json", "")
+                .replace("```text", "")
+                .replace("```", "")
+                .replace("“", '"')
+                .replace("”", '"')
+                .strip("`")
+            )
+
+            try:
+                result_json = json.loads(result)
+                with RabbitMQ() as mq:
                     mq.publish(settings.RABBITMQ_QUEUE, json.dumps(result_json))
 
-                except JSONDecodeError as e:
-                    log.error(f"JSONDecodeError: {e}")
-                finally:
-                    self._messages = []
+            except JSONDecodeError as e:
+                log.error(f"JSONDecodeError: {e}")
+            finally:
+                self._messages = []
