@@ -1,6 +1,7 @@
 import json
 
 from aiogram import Bot
+from aiogram.types import FSInputFile
 
 from src import log
 from src.api import get_video_from_flow
@@ -19,7 +20,7 @@ async def send_message(bot: Bot, message: str) -> None:
     """
     message = json.loads(message)
 
-    start_time, end_time = map(float, message["time_range"].split(" - "))
+    start_time, end_time = map(int, map(float, message["time_range"].split(" - ")))
 
     caption = (
         f"<b>News</b>\n\n"
@@ -30,10 +31,11 @@ async def send_message(bot: Bot, message: str) -> None:
     )
 
     video = await get_video_from_flow(int(start_time), int(end_time))
+    video = FSInputFile(video)
     log.info(f"Video saved to {video}")
 
     log.info(
-        f"Sending video to channel {settings.CHANNEL_NAME}, Video: {video}, Caption: {caption}"
+        f"Sending video to channel {settings.CHANNEL_NAME}, Video: {video.path}, Caption: {caption}"
     )
     await bot.send_video(
         chat_id=settings.CHANNEL_NAME,
@@ -41,4 +43,4 @@ async def send_message(bot: Bot, message: str) -> None:
         caption=caption,
     )
 
-    delete_file(video)
+    delete_file(video.path)
