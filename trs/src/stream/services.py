@@ -63,6 +63,7 @@ class StreamService:
 
         while True:
             data = self._stream.stdout.read(self._CHUNK_SIZE)
+            log.info(f"Chunk size readed: {len(data)} bytes")
 
             if not data:
                 continue
@@ -85,6 +86,7 @@ class StreamService:
             segments = []
 
             try:
+                log.info(f"Transcribing...")
                 segments = self._transcription_client.transcribe(str(file_path))
             except HTTPError as e:
                 log.error(e)
@@ -100,7 +102,7 @@ class StreamService:
                 f"{segment['text']}"
                 for segment in segments
             )
-            log.info(message)
+            log.info(f"message: {message}")
 
             self._messages.append(
                 {
@@ -124,7 +126,7 @@ class StreamService:
             if not result:
                 continue
 
-            print(result)
+            log.info(f"Chat result: {result}")
 
             if result.strip() == "-":
                 if (
@@ -139,7 +141,7 @@ class StreamService:
 
             try:
                 result = (
-                    result.replace("```json", "").replace("```", "").strip()
+                    result.replace("```json", "").replace("```", "").replace('“', '"').strip()
                 )
                 result_json = json.loads(result)
                 self._messages = []

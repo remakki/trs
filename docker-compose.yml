@@ -1,7 +1,7 @@
 services:
   trs:
     build: ./trs
-    container_name: trs-servcie
+    container_name: trs-service
     env_file:
       - trs/.env
     image: trs-service
