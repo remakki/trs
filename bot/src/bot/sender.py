@@ -19,7 +19,7 @@ async def send_message(bot: Bot, message: str) -> None:
     """
     message = json.loads(message)
 
-    start_time, end_time = map(int, message["time_range"].split(" - "))
+    start_time, end_time = map(float, message["time_range"].split(" - "))
 
     caption = (
         f"<b>News</b>\n\n"
@@ -29,7 +29,7 @@ async def send_message(bot: Bot, message: str) -> None:
         + " ".join(f"#{tag}" for tag in message["tags"])
     )
 
-    video = await get_video_from_flow(start_time, end_time)
+    video = await get_video_from_flow(int(start_time), int(end_time))
     log.info(f"Video saved to {video}")
 
     log.info(
