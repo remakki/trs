@@ -4,7 +4,7 @@ services:
     container_name: trs-servcie
     env_file:
       - trs/.env
-    image: trs-servcie
+    image: trs-service
     networks:
       - trs-network
 
