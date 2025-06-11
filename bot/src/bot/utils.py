@@ -15,6 +15,7 @@ def to_normal_time(seconds: float) -> str:
 
     return datetime.fromtimestamp(seconds).strftime("%H:%M:%S")
 
+
 def delete_file(file: str) -> None:
     """
     Delete file if it exists.

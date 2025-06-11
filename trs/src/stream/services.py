@@ -41,7 +41,9 @@ class StreamService:
         self._max_diff_time_for_last_message = 60 * 7
 
         self._messages: list[Message] = []
-        self._time = datetime.now(timezone.utc).timestamp()
+        self._time: float | None = (
+            None  # timestamp of the last processed audio chunk
+        )
 
         self._ai_client = AIClient()
         self._transcription_client = TranscriptionClient()
@@ -58,6 +60,7 @@ class StreamService:
             sample_rate=self._SAMPLE_RATE,
             flow_format=self._flow_format,
         )
+        self._time = datetime.now(timezone.utc).timestamp()
 
         while True:
             if not self._stream:
@@ -105,11 +108,12 @@ class StreamService:
             delete_file(str(file_path))
 
             if not segments:
+                self._time += split_seconds
                 continue
 
             message = "\n".join(
-                f"[{self._time + segment['start']} - "
-                f"{self._time + segment['end']}] "
+                f"[{(self._time + segment['start']):.2f} - "
+                f"{(self._time + segment['end']):.2f}] "
                 f"{segment['text']}"
                 for segment in segments
             )

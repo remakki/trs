@@ -19,5 +19,5 @@ async def main():
     await asyncio.gather(start_bot(bot), start_consume(bot))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

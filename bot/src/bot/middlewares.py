@@ -9,10 +9,10 @@ class BotMiddleware(BaseMiddleware):
         self.bot = bot
 
     async def __call__(
-            self,
-            handler: Callable[[Update, Dict[str, Any]], Awaitable[Any]],
-            event: Update,
-            data: Dict[str, Any]
+        self,
+        handler: Callable[[Update, Dict[str, Any]], Awaitable[Any]],
+        event: Update,
+        data: Dict[str, Any],
     ) -> Any:
-        data['bot'] = self.bot
+        data["bot"] = self.bot
         return await handler(event, data)

@@ -31,7 +31,7 @@ class AsyncRabbitMQ:
                 host=self.host,
                 port=self.port,
                 login=self.user,
-                password=self.password
+                password=self.password,
             )
             self.channel = await self.connection.channel()
             log.info("Успешное подключение к RabbitMQ")
@@ -60,7 +60,9 @@ class AsyncRabbitMQ:
             log.error(f"Ошибка при закрытии соединения: {e}")
             raise
 
-    async def consume(self, queue_name: str, callback: Callable[[str], Awaitable[None]]) -> None:
+    async def consume(
+        self, queue_name: str, callback: Callable[[str], Awaitable[None]]
+    ) -> None:
         """
         Асинхронное потребление сообщений из указанной очереди.
 
@@ -89,7 +91,9 @@ class AsyncRabbitMQ:
                 try:
                     async with message.process():
                         body = message.body.decode()
-                        log.info(f"Получено сообщение из очереди {queue_name}: {body}")
+                        log.info(
+                            f"Получено сообщение из очереди {queue_name}: {body}"
+                        )
                         await callback(body)
                 except Exception as e:
                     log.error(f"Ошибка обработки сообщения: {e}")
@@ -129,9 +133,9 @@ class AsyncRabbitMQ:
             await self.channel.default_exchange.publish(
                 aio_pika.Message(
                     body=message.encode(),
-                    delivery_mode=aio_pika.DeliveryMode.PERSISTENT  # Сообщения сохраняются
+                    delivery_mode=aio_pika.DeliveryMode.PERSISTENT,  # Сообщения сохраняются
                 ),
-                routing_key=queue_name
+                routing_key=queue_name,
             )
             log.info(f"Отправлено сообщение в очередь {queue_name}: {message}")
         except aio_pika.exceptions.AMQPError as e:
