@@ -5,7 +5,7 @@ from src.config import settings
 
 
 async def get_video_from_flow(start_time: int, end_time: int) -> str:
-    dur = end_time - start_time
+    dur = min(100, end_time - start_time)
     ENDPOINT = (
         settings.REQUEST_URL
         + f"/archive-{start_time}-{dur}.mp4?token={settings.TOKEN}"
